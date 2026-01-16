@@ -1,5 +1,16 @@
+import Link from 'next/link';
 import {addTransaction, deleteTransaction} from './actions';
 import {prisma} from '@/lib/prisma';
+
+
+  //Fungsi format uang ke rupiah
+  const formatRupiah = (number: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(number);
+  }
 
 export default async function Home(){
   //1. ambil data asli dari database
@@ -8,104 +19,89 @@ export default async function Home(){
   });
 
   //2. hitung saldo
-  const amounts = transactions.map((t: any) =>
-  t.category === 'EXPENSE' ? -t.amount : t.amount);
-
+  const amounts = transactions.map((t: any) =>t.category === 'EXPENSE' ? -t.amount : t.amount);
   const total = amounts.reduce((acc: number, item: number) => acc + item, 0);
-
-  const income = amounts
-  .filter((item: number) => item<0)
-  .reduce((acc: number, item: number) => acc + item, 0);
-
-  const expense = (
-    amounts
-    .filter((item: number) => item < 0)
-    .reduce((acc: number, item: number) => acc + item, 0) * -1
-  );
+  const income = amounts.filter((item: number) => item<0).reduce((acc: number, item: number) => acc + item, 0);
+  const expense = (amounts.filter((item: number) => item < 0).reduce((acc: number, item: number) => acc + item, 0) * -1);
 
   return(
-    <main className="flex min-h-screen flex-col items-center p-6 bg-slate-100 font sans text-slate-800">
-
-      {/* BOX SALDO */}
-      <div className="w-full max-w-md bg-white p-6 rounded-xl shadow-md mb-6">
-        <h2 className="text-sm uppercase font-bold text-slate-500">Saldo Total</h2>
-        <h1 className="text-3xl font-bold my-2">Rp {total.toLocaleString('id-ID')}</h1>
-
-        <div className="flex bg-white shadow-sm border mt-4 rounded-lg p-4 divide-x">
-          <div className="w-1/2 text-center">
-          <h4 className="text-sm font-semibold uppercase text-green-600">Pemasukan</h4>
-          <p className="font-bold text-lg text-green-600">+Rp {income.toLocaleString('id-ID')}</p>
+    <main className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-20">
+      {/* Navbar */}
+      <nav className="bg-blue-600 text-white p-4 shadow-md">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-bold">Dompetku 💰</h1>
+          <div className="space-x-4">
+            <Link href="/" className="hover:text-blue-200 font-medium">Home</Link>
+            <Link href="/stats" className="hover:text-blue-200">Statistik</Link>
           </div>
+        </div>
+      </nav>
 
-          <div className="w-1/2 text-center">
-          <h4 className="text-sm font-semibold uppercase text-red-600">Pengeluaran</h4>
-          <p className="font-bold text-lg text-red-600">-Rp {expense.toLocaleString('id-ID')}</p>
-          </div>
+      <div className="container mx-auto px-4 mt-8 max-w-lg">
+
+        {/* Card Saldo Utama */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 text-center border border-gray-100">
+          <h2 className="text-gray-500 text-sm uppercase tracking-wider font-semibold">Saldo Anda</h2>
+          <h1 className={`text-4xl font-bold mt-2 ${total < 0 ? 'text-red-500' : 'text-gray-800'}`}>
+            {formatRupiah(total)}
+          </h1>
+        
+        <div className="w-1/2 text-center">
+          <span className="block text-xs font-bold text-gray-400 uppercase">Pemasukan</span>
+          <span className="block text-green-500 font-bold text-lg mt-1">{formatRupiah(income)}</span>
+        </div>
+        <div className="w-1/2 text-center">
+        <span className="block text-xs font-bold text-gray-400 uppercase">Pengeluaran</span>
+        <span className="block text-red-500 font-bold text-lg mt-1">{formatRupiah(expense)}</span>
         </div>
       </div>
 
-      {/* FORM INPUT BARU TANPA USESTATE DAN ONCHANGE */}
-      <div className="w-full max-w-md mb-8 bg-white p-6 rounded-xl shadow-sm">
-        <h3 className="text-xl font-bold border-b-2 border-slate-300 pb-2 mb-4">Tambah Transaksi</h3>
-        <form action={addTransaction} className="flex flex-col gap-3">
-          <input
-          type="text"
-          name="text"
-          placeholder="Keterangan (Contoh: Gaji, Makan)"
-          className="border p-3 rounded-lg w-full focus:outline-blue-500" required/>
+      {/* Form Tambah Transaksi */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+      <h3 className="font-bold text-lg mb-4 border-b pb-2">Tambah Transasksi Baru</h3>
+      <form action={addTransaction} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Keterangan</label>
+          <input type="text" name="text" placeholder="Cth: Gaji, Beli kopi..." required className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focusLring-blue-500 focus:outline-none transition"/>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1"></label>
+          jumlah <span className="text-xs text-gray-400">(negatif = pengeluaran, positif = pemasukan)</span>
+          <input type="number" name="number" placeholder="Cth: -50000 atau 1000000" required className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:outline-none transition"></input>
+        </div>
+        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-md hover:shadow-lg transform hover-translate-y-0.5">Simpan Transaksi</button>
+      </form>
+      </div>
 
-          <div className="flex gap-2">
-            <input
-            type="number"
-            placeholder="Nominal (Rp)..."
-            className="border p-3 rounded-lg w-full focus:outline-blue-500" required/>
-            <select name="category" className="border p-3 rounded-lg bg-slate-50 cursor-pointer">
-              <option value="EXPENSE">Pengeluaran</option>
-              <option value="INCOME">Pemasukan</option>
-            </select>
-          </div>
-
-          <button type="submit" className="bg-black text-white p-3 rounded-lg font-bold hover:bg-gray-800 transition mt-2">
-            Simpan Transaksi
-          </button>
-        </form>
-
-        {/* DAFTAR RIWAYAT */}
-        <div className="w-full max-w-md">
-          <h3 className="text-xl font-bold mb-4 ml-1">Riwayat Terakhir</h3>
-          {transactions.length === 0 ? (
-            <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed">
-              Belum ada transaksi
-              </div>
-          ) : (
-            <ul className="space-y-3">
-              {transactions.map((t: any) => (
-              <li key={t.id} className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-3">
-                  <div className={`w-2 h-10 rounded-full ${t.category === 'INCOME' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <div>
-                  <p className="font-semibold text-slate-900">{t.text}</p>
-                  <p className="text-xs text-gray-400">{t.createdAt.toLocalDateString()}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <span className={`font-bold ${t.category === 'INCOME' ? 'text-green-600' : 'text-red-600'}`}>
-                  {t.category === 'INCOPME' ? '+' : '-'}Rp {t.amount.toLocaleString('id-ID')}
-                </span>
-
-                {/* Tombol hapus server action */}
-                <form action={deleteTransaction.bind(null, t.id)}>
-                  <button type="submit" className="text-red-400 hover:text-red-700 font-bold ml-2">X</button>
+      {/* List Transaksi */}
+      <div>
+        <h3 className="font-bold text-lg text-gray-700">Riwayat Transaksi</h3>
+        {transactions.length === 0? (
+          <p className="text-center text-gray-400 italic py-8">Belum ada transaksi.</p>
+        ) : (
+          <ul className="space-y-3">
+            {transactions.map((t) => (
+              <li key={t.id} className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-transparent hover:shadow-md transition flex justify-between items center relative group"
+                style={{ borderLeftColor: t.amount < 0 ? '#ef4444' : '#22c55e'}}>
+                
+                {/* Tombol Delete */}
+                <form action={deleteTransaction.bind(null, t.id)} className="absolue -left-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button className="bg-red-500 text-white p-2 rounded-full shadow hover:bg-red-600">
+                    X
+                  </button>
                 </form>
-              </div>
-              </li>
-              )
-              )}
-            </ul>
-          )}
-        </div>
+
+                <div>
+                  <p className="font-semibold text-gray-800">{t.text}</p>
+                  <p className="text-xs text-gray-400">{t.createdAt.toLocaleDateString('id-ID')}</p>
+                </div>
+                <span className={`font-bold ${t.amount < 0 ? 'text-red-500' : 'text-green-500'}`}></span>
+                </li>
+            ))}
+          </ul>
+        )}
       </div>
+    </div>
     </main>
-  )
+  );
 }
